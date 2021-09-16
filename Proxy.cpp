@@ -107,7 +107,7 @@ void Proxy::run()
 			if (DBFd > maxFd)
 				maxFd = DBFd;
 		}
-
+		std::cout << "wait on select()...\n";
 		res = select(maxFd + 1, &readFds, &writeFds, NULL, NULL);
 		if (res == -1 && errno != EINTR)
 		{

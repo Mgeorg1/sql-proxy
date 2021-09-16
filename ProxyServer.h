@@ -17,6 +17,6 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <arpa/inet.h>
-#define BUFFSIZE 1024
+#define BUFFSIZE 100000
 
 #endif
