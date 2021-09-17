@@ -1,3 +1,8 @@
+
+/***************************************/
+/*  By Mezin Georgy  created: 16.09.21 */
+/***************************************/
+
 #include "Client.hpp"
 
 Client::Client(std::string &DBAddress, int fd, int DBport)
@@ -5,15 +10,9 @@ Client::Client(std::string &DBAddress, int fd, int DBport)
 	_DBAddress = DBAddress;
 	_clientFd = fd;
 	_DBport = DBport;
-	//test
-		// _response = strdup("@1234");
-	//
 	_DBFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_DBFd < 0)
-	{
-		perror("socket() failed");
-		exit(EXIT_FAILURE);
-	}
+		throw std::runtime_error("socket() failed");
 	_opt = 1;
 	setsockopt(_DBFd, SOL_SOCKET, SO_REUSEADDR, &_opt, (socklen_t)(sizeof(_opt)));
 	_addrLen = sizeof(_addr);
@@ -21,19 +20,11 @@ Client::Client(std::string &DBAddress, int fd, int DBport)
 	_addr.sin_family = AF_INET;
 	_addr.sin_port = htons(DBport);
 	if (!inet_aton(_DBAddress.c_str(), &(_addr.sin_addr)))
-	{
-		perror("Not valid ip-address");
-		exit(EXIT_FAILURE);
-	}
+		throw std::runtime_error("Not valid ip-address");
 	if (connect(_DBFd, (struct sockaddr *)&_addr, (socklen_t)_addrLen))
-	{
-		perror("Failed connect to DB");
-		exit (EXIT_FAILURE);
-	}
+		throw std::runtime_error("Failed connect to DB");
 	int flag = fcntl(_DBFd, F_GETFL);
 	fcntl(_DBFd, F_SETFL, flag | O_NONBLOCK);
-	std::cout << "New client has been connected to DB with socket " \
-		<< _DBFd << " and client fd " << _clientFd << "\n";
 	_status = READ_FROM_DB;
 }
 Client &Client::operator=(Client const &other)
@@ -78,71 +69,75 @@ void Client::setStatus(int status)
 
 void Client::reciveFromClient()
 {
-	std::cout << "wait from client\n";
 	bzero(_request, BUFFSIZE);
 	int len = recv(_clientFd, _request, sizeof(_request), MSG_NOSIGNAL);
 	if (len < 0)
 	{
-		perror("recv failed()");
-		exit (EXIT_FAILURE);
+		std::string error = "ERROR: recv() failed: " + std::string(strerror(errno));
+		_status = CLOSE;
+		throw std::runtime_error(error);
 	}
 	if (len == 0)
 	{
-		std::cout << "Connection with socket " << _clientFd << " was closed\n";
+		std::cout << "Connection with socket was closed\n";
 		_status = CLOSE;
 		return ;
 	}
 	_reqLen = len;
-	int pLen = int(int(_request[0])
-		| int(_request[1]) << 8
-		| int(_request[2]) << 16);
-	std::cout << pLen << "\n";
-	write(1, &_request[4], 1);
-	write(1, "\n", 1);
-	write(1, &_request[5], pLen - 1);
-	write(1, "\n", 1);
+	if (int(_request[4]) == COM_QUERY || int(_request[4]) == COM_STM_PREPARE)
+	{
+		try
+		{
+			logger(_request);
+		}
+		catch (const std::exception &e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	}
 	_status = SEND_TO_DB;
 }
 
 void Client::reciveFromDB()
 {
-	std::cout << "wait from DB\n";
 	bzero(_response, BUFFSIZE);
 	int len = recv(_DBFd, _response, sizeof(_response), 0);
 	if (len < 0)
 	{
-		perror("recv failed()");
-		exit (EXIT_FAILURE);
+		std::string error = "ERROR: recv() failed: " + std::string(strerror(errno));
+		_status = CLOSE;
+		throw std::runtime_error(error);
 	}
 	if (len == 0)
 	{
+		std::cout << "Connection was closed\n";
 		_status = CLOSE;
 		return ;
 	}
 	_resLen = len;
-	std::cout << len << "\n";
-	write(1, _response, strlen((char*)_response));
 	_status = SEND_TO_CLIENT;
 }
 
 void Client::sendToDB()
 {
-	std::cout << "send to DB\n";
 	int len = send(_DBFd, _request, _reqLen, MSG_NOSIGNAL);
 	if (len < 0)
 	{
-		perror("send() failed");
+		std::string error = "ERROR: send() failed: " + std::string(strerror(errno));
+		_status = CLOSE;
+		throw std::runtime_error(error);
 	}
 	_status = READ_FROM_DB;
 }
 
 void Client::sendToClient()
 {
-	std::cout << "send to client\n";
 	int len = send(_clientFd, _response, _resLen, MSG_NOSIGNAL);
 	if (len < 0)
 	{
-		perror("send() failed");
+		std::string error = "ERROR: send() failed: " + std::string(strerror(errno));
+		_status = CLOSE;
+		throw std::runtime_error(error);
 	}
 	_status = READ_FROM_CLIENT;
 }

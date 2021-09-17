@@ -2,9 +2,10 @@ NAME =	proxy
 
 SRCS =	main.cpp\
 		Client.cpp\
-		Proxy.cpp
+		Proxy.cpp\
+		logger.cpp
 
-COMP = clang++
+COMP = c++
 
 OBJS = $(SRCS:.cpp=.o)
 

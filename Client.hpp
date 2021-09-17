@@ -1,3 +1,7 @@
+/***************************************/
+/*  By Mezin Georgy  created: 16.09.21 */
+/***************************************/
+
 #ifndef	CLIENT_HPP
 #define	CLIENT_HPP
 #define SEND_TO_DB 0
@@ -5,7 +9,6 @@
 #define READ_FROM_CLIENT 2
 #define READ_FROM_DB 3
 #define CLOSE 4
-// #include "Proxy.hpp"
 #include "ProxyServer.h"
 
 class Client
@@ -29,8 +32,6 @@ public:
 	Client(std::string &DBAddress, int fd, int DBport);
 	~Client();
 	void setStatus(int status);
-	// void setRequest(char *req);
-	// void setResponse(char *res)
 	int getStatus();
 	int getClientFd();
 	int getDBFd();

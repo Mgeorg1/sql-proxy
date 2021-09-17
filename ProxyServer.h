@@ -1,3 +1,7 @@
+/***************************************/
+/*  By Mezin Georgy  created: 16.09.21 */
+/***************************************/
+
 #ifndef PROXYSERVER_HPP
 #define PROXYSERVER_HPP
 
@@ -17,6 +21,11 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #define BUFFSIZE 100000
+#define COM_QUERY 3
+#define COM_STM_PREPARE 22
+
+void logger(char *packet);
 
 #endif
